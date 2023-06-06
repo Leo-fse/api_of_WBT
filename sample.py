@@ -30,11 +30,11 @@ def compare_data(internal_data, external_data, table_name):
                 print(f"更新データ: {table_name} - {primary_key_external}")
 
 # データベースへの接続とデータの取得
-def get_data(username, password, host, port, service_name, table_name):
+def get_data(username, password, host, port, service_name, schema, table_name):
     dsn = cx_Oracle.makedsn(host, port, service_name=service_name)
     connection = cx_Oracle.connect(username, password, dsn)
     with connection.cursor() as cursor:
-        cursor.execute(f"SELECT * FROM {table_name}")
+        cursor.execute(f"SELECT * FROM {schema}.{table_name}")
         columns = [desc[0] for desc in cursor.description]
         data = cursor.fetchall()
     connection.close()
@@ -47,13 +47,14 @@ def compare_tables(internal_data, external_data, table_name):
     compare_data(internal_rows, external_rows, table_name)
 
 # 各テーブルのデータを比較
+schema = 'your_schema'
 table_name = 'MachineSN'
 
 # 社内版データの取得
-internal_data = get_data(internal_username, internal_password, internal_host, internal_port, internal_service_name, table_name)
+internal_data = get_data(internal_username, internal_password, internal_host, internal_port, internal_service_name, schema, table_name)
 
 # 社外版データの取得
-external_data = get_data(external_username, external_password, external_host, external_port, external_service_name, table_name)
+external_data = get_data(external_username, external_password, external_host, external_port, external_service_name, schema, table_name)
 
 # データの比較と差分の抽出
 compare_tables(internal_data, external_data, table_name)
