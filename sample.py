@@ -2,7 +2,7 @@ import pandas as pd
 import cx_Oracle
 import os
 import configparser
-
+from pprint import pprint
 
 def get_data(username, password, host, port, service_name, table_name):
     dsn = cx_Oracle.makedsn(host, port, service_name=service_name)
