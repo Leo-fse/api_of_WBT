@@ -38,8 +38,8 @@ external_data = get_data(external_username, external_password, external_host, ex
 
 # データのマージと差分の抽出
 merged_data = pd.merge(internal_data, external_data, on=primary_key_columns, how='outer', suffixes=('_internal', '_external'))
-new_data = merged_data[merged_data['_external'].isnull()]
-updated_data = merged_data[~merged_data['_internal'].equals(merged_data['_external'])]
+new_data = merged_data[merged_data['MachineSN_external'].isnull()]
+updated_data = merged_data[~merged_data['MachineSN_internal'].equals(merged_data['MachineSN_external'])]
 
 # 新規追加データの表示
 if len(new_data) > 0:
