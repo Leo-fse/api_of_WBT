@@ -31,15 +31,15 @@ def get_data(username, password, host, port, service_name, table_name):
 table_name = 'MachineSN'
 
 # 社内版データの取得
-internal_connection = get_data(internal_username, internal_password, internal_host, internal_port, internal_service_name, table_name)
+internal_data = get_data(internal_username, internal_password, internal_host, internal_port, internal_service_name, table_name)
 
 # 社外版データの取得
-external_connection = get_data(external_username, external_password, external_host, external_port, external_service_name, table_name)
+external_data = get_data(external_username, external_password, external_host, external_port, external_service_name, table_name)
 
 # データのマージと差分の抽出
-merged_data = pd.merge(internal_connection, external_connection, on=primary_key_columns, how='outer', suffixes=('_internal', '_external'))
+merged_data = pd.merge(internal_data, external_data, on=primary_key_columns, how='outer', suffixes=('_internal', '_external'))
 new_data = merged_data[merged_data['_external'].isnull()]
-updated_data = merged_data[merged_data['_internal'] != merged_data['_external']]
+updated_data = merged_data[~merged_data['_internal'].equals(merged_data['_external'])]
 
 # 新規追加データの表示
 if len(new_data) > 0:
