@@ -4,6 +4,7 @@ from pprint import pprint
 import os
 import configparser
 
+
 config = configparser.ConfigParser()
 ini_file_path = os.path.join(r"./config.ini")
 if os.path.isfile(ini_file_path):
@@ -48,8 +49,8 @@ col_list = internal_col_list
 
 internal_data["source"] = "internal"
 external_data["source"] = "external"
-internal_data["key"] = list(zip(internal_data["MACHINESN"], internal_data["PLANTID"]))
-external_data["key"] = list(zip(external_data["MACHINESN"], external_data["PLANTID"]))
+internal_data["key"] = [(m, p) for m, p in zip(internal_data["MACHINESN"], internal_data["PLANTID"])]
+external_data["key"] = [(m, p) for m, p in zip(external_data["MACHINESN"], external_data["PLANTID"])]
 
 # プライマリキーのカラム名
 primary_key_columns = ['MACHINESN', 'PLANTID']
@@ -60,11 +61,8 @@ del_key = list(set(external_data["key"]) - set(internal_data["key"]))
 # 追加データ
 add_data = internal_data[internal_data["key"].isin(add_key)]
 # 削除データ
-del_data = external_data[external_data["key"].isin(del_key)]
+del_data = external_data[external_data["key"].isin(add_key)]
 # 更新データ
-update_data = pd.merge(internal_data, external_data, on=primary_key_columns, how="inner", suffixes=("_internal", "_external"))
-update_data = update_data[update_data["_internal"].ne(update_data["_external"])]
+update_data = pd.concat([internal_data, external_data, add_data, del_data]).drop_duplicates(subset=col_list, keep=False)
 
 diff_data = {table_name: {"ADD": add_data[col_list].to_dict(orient="records"), "DEL": del_data[col_list].to_dict(orient="records"), "UPDATE": update_data[col_list].to_dict(orient="records")}}
-
-pprint(diff_data)
