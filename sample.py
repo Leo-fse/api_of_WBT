@@ -11,43 +11,42 @@ oracle_service_name = 'your_service_name'
 dsn = cx_Oracle.makedsn(oracle_host, oracle_port, service_name=oracle_service_name)
 connection = cx_Oracle.connect(oracle_username, oracle_password, dsn)
 
-# カーソルの作成
-cursor = connection.cursor()
-
-# MachineSNテーブルのデータを取得
-cursor.execute("SELECT * FROM MachineSN@社内版")
-machine_sn_data_internal = cursor.fetchall()
-
-cursor.execute("SELECT * FROM MachineSN@社外版")
-machine_sn_data_external = cursor.fetchall()
-
 # プライマリキーのカラム名
 primary_key_columns = ['MachineSN', 'PlantID']
 
-# カラム名の取得
-columns_internal = [column[0] for column in cursor.description]
+# データを取得する関数
+def get_table_data(connection, schema, table_name):
+    with connection.cursor() as cursor:
+        cursor.execute(f"SELECT * FROM {schema}.{table_name}")
+        columns = [desc[0] for desc in cursor.description]
+        data = cursor.fetchall()
+    return columns, data
 
-# 新規追加データの検出
-for row_external in machine_sn_data_external:
-    primary_key_external = tuple(row_external[columns_internal.index(column)] for column in primary_key_columns)
+# データの比較と差分の抽出
+def compare_data(internal_data, external_data, table_name):
+    primary_key_indices = [internal_data[0].index(column) for column in primary_key_columns]
+    for external_row in external_data[1]:
+        primary_key_external = tuple(external_row[i] for i in primary_key_indices)
+        if primary_key_external not in [tuple(internal_row[i] for i in primary_key_indices) for internal_row in internal_data[1]]:
+            print(f"新規追加: {table_name} - {primary_key_external}")
+        else:
+            internal_row = next(internal_row for internal_row in internal_data[1] if tuple(internal_row[i] for i in primary_key_indices) == primary_key_external)
+            if external_row != internal_row:
+                print(f"更新データ: {table_name} - {primary_key_external}")
 
-    if primary_key_external not in [tuple(row_internal[columns_internal.index(column)] for column in primary_key_columns) for row_internal in machine_sn_data_internal]:
-        print(f"新規追加: MachineSN={primary_key_external[0]}, PlantID={primary_key_external[1]}")
+# データの取得と比較
+internal_schema = 'your_internal_schema'
+external_schema = 'your_external_schema'
+table_name = 'MachineSN'
 
-# 更新データの検出
-for row_external in machine_sn_data_external:
-    primary_key_external = tuple(row_external[columns_internal.index(column)] for column in primary_key_columns)
-    external_columns = tuple(row_external[i] for i, column in enumerate(columns_internal) if column not in primary_key_columns)
+# 社内版データの取得
+internal_columns, internal_data = get_table_data(connection, internal_schema, table_name)
 
-    internal_rows = [row_internal for row_internal in machine_sn_data_internal if tuple(row_internal[columns_internal.index(column)] for column in primary_key_columns) == primary_key_external]
+# 社外版データの取得
+external_columns, external_data = get_table_data(connection, external_schema, table_name)
 
-    if internal_rows:
-        row_internal = internal_rows[0]
-        internal_columns = tuple(row_internal[i] for i, column in enumerate(columns_internal) if column not in primary_key_columns)
-
-        if external_columns != internal_columns:
-            print(f"更新データ: MachineSN={primary_key_external[0]}, PlantID={primary_key_external[1]}")
+# データの比較と差分の抽出
+compare_data((internal_columns, internal_data), (external_columns, external_data), table_name)
 
 # 接続のクローズ
-cursor.close()
 connection.close()
